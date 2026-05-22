@@ -173,7 +173,7 @@ func newBadgeCreateCmd() *cobra.Command {
 	c.Flags().StringVar(&status, "status", "", "badge status, usually draft or published")
 	c.Flags().IntVar(&categoryID, "badge-category-id", 0, "badge category id")
 	c.Flags().IntSliceVar(&groupIDs, "group-id", nil, "group id allowed to earn this badge; repeat or comma-separate")
-	c.Flags().StringArrayVar(&challenges, "challenge", nil, "challenge description; repeat to create a multi-challenge badge")
+	c.Flags().StringArrayVar(&challenges, "challenge", nil, "challenge title; repeat to create a multi-challenge badge")
 	return c
 }
 
@@ -209,7 +209,7 @@ func newBadgeUpdateCmd() *cobra.Command {
 	c.Flags().StringVar(&status, "status", "", "badge status")
 	c.Flags().IntVar(&categoryID, "badge-category-id", 0, "badge category id")
 	c.Flags().IntSliceVar(&groupIDs, "group-id", nil, "replacement group ids; repeat or comma-separate")
-	c.Flags().StringArrayVar(&challenges, "challenge", nil, "replacement challenge descriptions")
+	c.Flags().StringArrayVar(&challenges, "challenge", nil, "replacement challenge titles")
 	return c
 }
 
@@ -245,6 +245,7 @@ func challengeAttributeList(values []string) []map[string]any {
 	out := make([]map[string]any, 0, len(values))
 	for i, value := range values {
 		out = append(out, map[string]any{
+			"title":       value,
 			"description": value,
 			"position":    i + 1,
 		})
@@ -667,7 +668,7 @@ func newChallengesCmd() *cobra.Command {
 
 func newChallengeCreateCmd() *cobra.Command {
 	var badgeID, position int
-	var description string
+	var title, description string
 	c := &cobra.Command{
 		Use:   "create",
 		Short: "Create a challenge on a badge",
@@ -675,10 +676,11 @@ func newChallengeCreateCmd() *cobra.Command {
 			if err := requirePositiveInt("--badge-id", badgeID); err != nil {
 				return err
 			}
-			if err := requireAll(map[string]string{"--description": description}); err != nil {
+			if err := requireAll(map[string]string{"--title": title}); err != nil {
 				return err
 			}
-			attrs := map[string]any{"description": description}
+			attrs := map[string]any{"title": title}
+			addString(attrs, "description", description)
 			if position > 0 {
 				attrs["position"] = position
 			}
@@ -687,13 +689,14 @@ func newChallengeCreateCmd() *cobra.Command {
 		},
 	}
 	c.Flags().IntVar(&badgeID, "badge-id", 0, "badge id (required)")
-	c.Flags().StringVar(&description, "description", "", "challenge description (required)")
+	c.Flags().StringVar(&title, "title", "", "challenge title (required)")
+	c.Flags().StringVar(&description, "description", "", "challenge description")
 	c.Flags().IntVar(&position, "position", 0, "challenge position")
 	return c
 }
 
 func newChallengeUpdateCmd() *cobra.Command {
-	var description string
+	var title, description string
 	var position int
 	c := &cobra.Command{
 		Use:   "update <challenge-id>",
@@ -701,6 +704,7 @@ func newChallengeUpdateCmd() *cobra.Command {
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			attrs := map[string]any{}
+			addStringChanged(cmd, attrs, "title", "title", title)
 			addStringChanged(cmd, attrs, "description", "description", description)
 			addIntChanged(cmd, attrs, "position", "position", position)
 			if err := requireChanged(attrs); err != nil {
@@ -709,6 +713,7 @@ func newChallengeUpdateCmd() *cobra.Command {
 			return apiRequest(cmd, http.MethodPatch, "/api/v1/challenges/"+args[0], nested("challenge", attrs), nil)
 		},
 	}
+	c.Flags().StringVar(&title, "title", "", "challenge title")
 	c.Flags().StringVar(&description, "description", "", "challenge description")
 	c.Flags().IntVar(&position, "position", 0, "challenge position")
 	return c

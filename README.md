@@ -156,7 +156,7 @@ familyjourney categories create --name "Music" --description "Music badges"
 familyjourney categories move-up CATEGORY_ID
 familyjourney groups create --name "Younger kids"
 familyjourney groups add-member GROUP_ID --kid-id KID_ID
-familyjourney challenges create --badge-id BADGE_ID --description "Do the hard part" --position 2
+familyjourney challenges create --badge-id BADGE_ID --title "Do the hard part" --description "Add any proof notes" --position 2
 ```
 
 Review mutations:

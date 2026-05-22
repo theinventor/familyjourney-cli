@@ -172,7 +172,7 @@ func TestRedemptionDenyRequestShape(t *testing.T) {
 }
 
 func TestChallengeCreateRequestShape(t *testing.T) {
-	_, _, cap, err := runHTTPCommand(t, []string{"challenges", "create", "--badge-id", "12", "--description", "Practice daily", "--position", "2"}, http.StatusCreated, `{"id":9}`)
+	_, _, cap, err := runHTTPCommand(t, []string{"challenges", "create", "--badge-id", "12", "--title", "Practice daily", "--description", "Log 20 minutes", "--position", "2"}, http.StatusCreated, `{"id":9}`)
 	if err != nil {
 		t.Fatalf("challenges create returned error: %v", err)
 	}
@@ -184,8 +184,28 @@ func TestChallengeCreateRequestShape(t *testing.T) {
 		t.Fatalf("unexpected badge_id body: %#v", body)
 	}
 	challenge := body["challenge"].(map[string]any)
-	if challenge["description"] != "Practice daily" || challenge["position"].(float64) != 2 {
+	if challenge["title"] != "Practice daily" || challenge["description"] != "Log 20 minutes" || challenge["position"].(float64) != 2 {
 		t.Fatalf("unexpected challenge body: %#v", challenge)
+	}
+}
+
+func TestBadgeCreateChallengeRequestShape(t *testing.T) {
+	_, _, cap, err := runHTTPCommand(t, []string{"badges", "create", "--title", "Music practice", "--points", "10", "--challenge", "Practice scales"}, http.StatusCreated, `{"id":12}`)
+	if err != nil {
+		t.Fatalf("badges create returned error: %v", err)
+	}
+	if cap.method != http.MethodPost || cap.path != "/api/v1/badges" {
+		t.Fatalf("expected POST /api/v1/badges, got %s %s", cap.method, cap.path)
+	}
+	body := decodeBody(t, cap.body)
+	badge := body["badge"].(map[string]any)
+	challenges := badge["badge_challenges_attributes"].([]any)
+	if len(challenges) != 1 {
+		t.Fatalf("expected one challenge, got %#v", challenges)
+	}
+	challenge := challenges[0].(map[string]any)
+	if challenge["title"] != "Practice scales" || challenge["description"] != "Practice scales" {
+		t.Fatalf("unexpected badge challenge body: %#v", challenge)
 	}
 }
 
