@@ -128,6 +128,21 @@ func TestBadgePublishRequestShape(t *testing.T) {
 	}
 }
 
+func TestBadgeCreateAllowsZeroPoints(t *testing.T) {
+	_, _, cap, err := runHTTPCommand(t, []string{"badges", "create", "--title", "Kindness", "--points", "0"}, http.StatusCreated, `{"id":5}`)
+	if err != nil {
+		t.Fatalf("badges create returned error: %v", err)
+	}
+	if cap.method != http.MethodPost || cap.path != "/api/v1/badges" {
+		t.Fatalf("expected POST /api/v1/badges, got %s %s", cap.method, cap.path)
+	}
+	body := decodeBody(t, cap.body)
+	badge := body["badge"].(map[string]any)
+	if badge["title"] != "Kindness" || badge["points"].(float64) != 0 {
+		t.Fatalf("unexpected badge body: %#v", badge)
+	}
+}
+
 func TestSubmissionDenyRequestShape(t *testing.T) {
 	_, _, cap, err := runHTTPCommand(t, []string{"submissions", "deny", "55", "--reason", "Needs a clearer photo"}, http.StatusOK, `{"id":55,"status":"denied"}`)
 	if err != nil {
@@ -154,6 +169,48 @@ func TestPrizeCreateRequestShape(t *testing.T) {
 	prize := body["prize"].(map[string]any)
 	if prize["name"] != "Movie night" || prize["point_cost"].(float64) != 50 || prize["active"].(bool) {
 		t.Fatalf("unexpected prize body: %#v", prize)
+	}
+}
+
+func TestPrizeCreateAllowsZeroPointCost(t *testing.T) {
+	_, _, cap, err := runHTTPCommand(t, []string{"prizes", "create", "--name", "Bonus screen time", "--point-cost", "0"}, http.StatusCreated, `{"id":4}`)
+	if err != nil {
+		t.Fatalf("prizes create returned error: %v", err)
+	}
+	if cap.method != http.MethodPost || cap.path != "/api/v1/prizes" {
+		t.Fatalf("expected POST /api/v1/prizes, got %s %s", cap.method, cap.path)
+	}
+	body := decodeBody(t, cap.body)
+	prize := body["prize"].(map[string]any)
+	if prize["name"] != "Bonus screen time" || prize["point_cost"].(float64) != 0 || !prize["active"].(bool) {
+		t.Fatalf("unexpected prize body: %#v", prize)
+	}
+}
+
+func TestCreateRequiresNumericFlagsBeforeRequest(t *testing.T) {
+	cases := []struct {
+		name string
+		argv []string
+	}{
+		{name: "missing badge points", argv: []string{"badges", "create", "--title", "Kindness"}},
+		{name: "negative badge points", argv: []string{"badges", "create", "--title", "Kindness", "--points", "-1"}},
+		{name: "missing prize point cost", argv: []string{"prizes", "create", "--name", "Bonus screen time"}},
+		{name: "negative prize point cost", argv: []string{"prizes", "create", "--name", "Bonus screen time", "--point-cost", "-1"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, cap, err := runHTTPCommand(t, tc.argv, http.StatusCreated, `{"id":1}`)
+			if err == nil {
+				t.Fatalf("expected validation error")
+			}
+			if cap.hits != 0 {
+				t.Fatalf("invalid command should not hit API, got %d hits", cap.hits)
+			}
+			if exitcode.ExitCodeFor(err) != exitcode.Usage {
+				t.Fatalf("expected usage exit code, got %d", exitcode.ExitCodeFor(err))
+			}
+		})
 	}
 }
 

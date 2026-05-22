@@ -149,7 +149,7 @@ func newBadgeCreateCmd() *cobra.Command {
 			if err := requireAll(map[string]string{"--title": title}); err != nil {
 				return err
 			}
-			if err := requirePositiveInt("--points", points); err != nil {
+			if err := requireNonNegativeIntFlag(cmd, "points", points); err != nil {
 				return err
 			}
 			attrs := map[string]any{"title": title, "points": points}
@@ -339,7 +339,7 @@ func newPrizeCreateCmd() *cobra.Command {
 			if err := requireAll(map[string]string{"--name": name}); err != nil {
 				return err
 			}
-			if err := requirePositiveInt("--point-cost", pointCost); err != nil {
+			if err := requireNonNegativeIntFlag(cmd, "point-cost", pointCost); err != nil {
 				return err
 			}
 			attrs := map[string]any{"name": name, "point_cost": pointCost, "active": active}

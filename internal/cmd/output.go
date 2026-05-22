@@ -73,6 +73,16 @@ func requirePositiveInt(name string, value int) error {
 	return nil
 }
 
+func requireNonNegativeIntFlag(cmd *cobra.Command, flagName string, value int) error {
+	if !flagChanged(cmd, flagName) {
+		return exitcode.Wrap(exitcode.Usage, fmt.Errorf("--%s is required", flagName))
+	}
+	if value < 0 {
+		return exitcode.Wrap(exitcode.Usage, fmt.Errorf("--%s must be zero or greater", flagName))
+	}
+	return nil
+}
+
 func flagChanged(cmd *cobra.Command, name string) bool {
 	f := cmd.Flags().Lookup(name)
 	return f != nil && f.Changed
